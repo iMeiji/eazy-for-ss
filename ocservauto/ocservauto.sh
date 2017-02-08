@@ -383,7 +383,7 @@ function tar_lz4_install(){
     print_info "Installing lz4 from github"
     DEBIAN_FRONTEND=noninteractive apt-get -y -qq remove --purge liblz4-dev
     mkdir lz4
-    LZ4_VERSION=`curl -s "https://github.com/Cyan4973/lz4/releases/latest" | sed -n 's/^.*tag\/\(.*\)".*/\1/p'` 
+    LZ4_VERSION=`curl -sL "https://github.com/Cyan4973/lz4/releases/latest" | sed -n 's/^.*tag\/\(.*\)".*/\1/p'` 
     curl -SL "https://github.com/Cyan4973/lz4/archive/$LZ4_VERSION.tar.gz" -o lz4.tar.gz
     tar -xf lz4.tar.gz -C lz4 --strip-components=1 
     rm lz4.tar.gz 
@@ -461,7 +461,7 @@ EOF
             }
         }     
     }
-    oc_dependencies="openssl autogen gperf pkg-config make gcc m4 build-essential libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev libtalloc-dev $oc_add_dependencies"
+    oc_dependencies="openssl autogen gperf pkg-config make gcc m4 build-essential libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev libtalloc-dev libev-dev liboath-dev $oc_add_dependencies"
     TEST_S=""
     Dependencies_install_onebyone   
 #install dependencies from wheezy-backports for debian wheezy
@@ -548,7 +548,7 @@ function tar_ocserv_install(){
     }
     [ ! -f dh.pem ] && {
         print_info "Perhaps generate DH parameters will take some time , please wait..."
-        certtool --generate-dh-params --sec-param high --outfile dh.pem
+        certtool --generate-dh-params --sec-param medium --outfile dh.pem
     }
     clear
     print_info "Ocserv install ok"
@@ -810,14 +810,13 @@ function get_new_userca_show(){
 
 function Outdate_Autoclean(){
     My_All_Ca=`ls -F|sed -n 's/\(user-.*\)\//\1/p'|sed ':a;N;s/\n/ /;ba;'`
-    Today_Date=`date`
-    Today_Date=`date -d "${Today_Date}" +%s`
+    Today_Date=`date +%s`
     for My_One_Ca in ${My_All_Ca}
     do
         Client_EX_Date=`openssl x509 -noout -enddate -in ${My_One_Ca}/${My_One_Ca}-cert.pem | cut -d= -f2`
         Client_EX_Date=`date -d "${Client_EX_Date}" +%s`
         [ ${Client_EX_Date} -lt ${Today_Date} ] && {
-            My_One_Ca_Now="${My_One_Ca}_$(date +%s)"
+            My_One_Ca_Now="${My_One_Ca}_${Today_Date}"
             mv ${My_One_Ca} ${My_One_Ca_Now}
             mv ${My_One_Ca_Now} -t revoke/
         }
@@ -869,8 +868,7 @@ function reinstall_ocserv(){
 function upgrade_ocserv(){    
     get_info_from_net
     [ "$OC_version_latest" = "" ] && {
-    print_warn "Could not connect to the official website."
-    exit 1
+    die "Could not connect to the official website."
     }
     Default_Ask "The latest is ${OC_version_latest} ,Input the version you want to upgrade." "$OC_version_latest" "oc_version"
     press_any_key
@@ -881,10 +879,10 @@ function upgrade_ocserv(){
     start_ocserv
     ps cax | grep ocserv > /dev/null 2>&1
     if [ $? -eq 0 ]; then
-    print_info "Your ocserv upgrade was successful!"
+        print_info "Your ocserv upgrade was successful!"
     else
-    print_warn "Ocserv start failure,ocserv is offline!"
-    print_info "You could use ' bash `basename $0` ri' to forcibly upgrade your ocserv."
+        print_warn "Ocserv start failure,ocserv is offline!"
+        print_info "You could use ' bash `basename $0` ri' to forcibly upgrade your ocserv."
     fi
 }
 
@@ -972,7 +970,8 @@ function surport_Syscodename(){
     [ "$oc_D_V" = "trusty" ] && return 0
     [ "$oc_D_V" = "utopic" ] && return 0
     [ "$oc_D_V" = "vivid" ] && return 0
-    #[ "$oc_D_V" = "wily" ] && return 0
+    [ "$oc_D_V" = "wily" ] && return 0
+    [ "$oc_D_V" = "xenial" ] && return 0
     #TEST NEWER SYS 测试新系统，取消下面一行的注释。
     #[ "$oc_D_V" = "$oc_D_V" ] && return 0
 ###############################

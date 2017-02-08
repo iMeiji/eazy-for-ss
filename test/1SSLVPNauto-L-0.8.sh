@@ -383,7 +383,7 @@ function tar_lz4_install(){
     print_info "Installing lz4 from github"
     DEBIAN_FRONTEND=noninteractive apt-get -y -qq remove --purge liblz4-dev
     mkdir lz4
-    LZ4_VERSION=`curl -s "https://github.com/Cyan4973/lz4/releases/latest" | sed -n 's/^.*tag\/\(.*\)".*/\1/p'` 
+    LZ4_VERSION=`curl -sL "https://github.com/Cyan4973/lz4/releases/latest" | sed -n 's/^.*tag\/\(.*\)".*/\1/p'` 
     curl -SL "https://github.com/Cyan4973/lz4/archive/$LZ4_VERSION.tar.gz" -o lz4.tar.gz
     tar -xf lz4.tar.gz -C lz4 --strip-components=1 
     rm lz4.tar.gz 
@@ -399,7 +399,24 @@ function tar_lz4_install(){
     print_info "[ lz4 ] ok"
 }
 
-#install freeradius-client 1.1.7
+#https://github.com/radcli/radcli
+function tar_radcli_install(){
+    print_info "Installing radcli"
+    DEBIAN_FRONTEND=noninteractive apt-get -y -qq remove --purge freeradius-client*
+    mkdir radcli
+    RADCLI_VERSION='1.2.5'
+    #RADCLI_VERSION=`curl -s "https://github.com/radcli/radcli/releases/latest" | sed -n 's/^.*tag\/\(.*\)".*/\1/p'`
+    curl -SL "https://github.com/radcli/radcli/releases/download/${RADCLI_VERSION}/radcli-${RADCLI_VERSION}.tar.gz" -o radcli.tar.gz
+    tar -xf radcli.tar.gz -C radcli --strip-components=1 
+    rm radcli.tar.gz 
+    cd radcli
+    ./configure --prefix=/usr --sysconfdir=/etc --enable-legacy-compat
+    make -j"$(nproc)" && make install
+    cd ..
+    rm -r radcli
+    print_info "[ radcli ] ok"
+}
+
 function tar_freeradius_client_install(){
     print_info "Installing freeradius-client-1.1.7"
     DEBIAN_FRONTEND=noninteractive apt-get -y -qq remove --purge freeradius-client*
@@ -461,7 +478,7 @@ EOF
             }
         }     
     }
-    oc_dependencies="openssl autogen gperf pkg-config make gcc m4 build-essential libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev libtalloc-dev $oc_add_dependencies"
+    oc_dependencies="openssl autogen gperf pkg-config make gcc m4 build-essential libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev libtalloc-dev libev-dev liboath-dev $oc_add_dependencies"
     TEST_S=""
     Dependencies_install_onebyone   
 #install dependencies from wheezy-backports for debian wheezy
@@ -476,7 +493,8 @@ EOF
     [ "$oc_D_V" = "utopic" ] && {
         test_source_install "$source_jessie" "jessie" "gnutls-bin"
     }
-#install freeradius-client-1.1.7
+#install freeradius
+#if you want to install radcli,use tar_radcli_install to replace the following line
     tar_freeradius_client_install
 #install lz4
     tar_lz4_install
@@ -511,6 +529,7 @@ function tar_ocserv_install(){
     }
     ./configure --prefix=/usr --sysconfdir=/etc $Extra_Options
     make -j"$(nproc)"
+    strip -s src/ocserv
     make install
 #check install 检测编译安装是否成功
     [ ! -f /usr/sbin/ocserv ] && {
@@ -548,7 +567,7 @@ function tar_ocserv_install(){
     }
     [ ! -f dh.pem ] && {
         print_info "Perhaps generate DH parameters will take some time , please wait..."
-        certtool --generate-dh-params --sec-param high --outfile dh.pem
+        certtool --generate-dh-params --sec-param medium --outfile dh.pem
     }
     clear
     print_info "Ocserv install ok"
@@ -970,7 +989,8 @@ function surport_Syscodename(){
     [ "$oc_D_V" = "trusty" ] && return 0
     [ "$oc_D_V" = "utopic" ] && return 0
     [ "$oc_D_V" = "vivid" ] && return 0
-    #[ "$oc_D_V" = "wily" ] && return 0
+    [ "$oc_D_V" = "wily" ] && return 0
+    #[ "$oc_D_V" = "xenial" ] && return 0
     #TEST NEWER SYS 测试新系统，取消下面一行的注释。
     #[ "$oc_D_V" = "$oc_D_V" ] && return 0
 ###############################
